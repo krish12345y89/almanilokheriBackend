@@ -142,7 +142,7 @@ export const userSignUpValidation = [
     .withMessage("Roll number is required")
     .isLength({ min: 1, max: 13 })
     .withMessage("Roll number must be between 1 and 13 characters")
-    .custom(checkDuplicate("rollNo")),
+    .custom(checkDuplicate("rollNo"))
 ];
 
 // Middleware to handle validation errors

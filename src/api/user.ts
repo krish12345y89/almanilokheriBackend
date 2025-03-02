@@ -10,9 +10,10 @@ import {
   validateErrors,
   validateSearchUser,
 } from "../validation/userValidation.js";
+import { UserAuth } from "../utils/userAuth.js";
 const app = Router();
 const userControllers = new userService();
-
+const auth:UserAuth=new UserAuth();
 app.post(
   "/signUp",
   upload.fields([
@@ -24,6 +25,9 @@ app.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data: userType = req.body;
+      const ip = req.ip;
+      data.ip=ip;
+      console.log(data)
       const avatar: Express.MulterS3.File = req.files?.["avatar"]?.[0];
       const proofFile: Express.MulterS3.File = req.files?.["proof"]?.[0];
 
@@ -84,7 +88,6 @@ app.post(
     }
   }
 );
-
 app.get(
   "/searchUser",
   validateSearchUser,

@@ -57,8 +57,13 @@ export class userService {
           url: data.avatar,
         },
         proof: mongoose.Types.ObjectId.isValid(data.proof)
-          ? { refferal: data.proof as mongoose.Types.ObjectId } // Assert type explicitly
-          : { publicId: uuidv4(), url: data.proof as string }, // Assert `url` is a string
+          ? { refferal: data.proof as mongoose.Types.ObjectId } 
+          : { publicId: uuidv4(), url: data.proof as string }, 
+        linkedIn : data.linkedIn,
+        faceBook : data.faceBook,
+        twitter: data.twitter,
+        alternativePhoneNumber : data.alternativePhoneNumber,
+        ipAddress : data.ip
       };
 
       console.log(

@@ -2,10 +2,11 @@ import { NextFunction, Request, Response, Router } from "express";
 import { TempUserService } from "../service/tempUser.js";
 import { tempUser } from "../types/user.js";
 import { ErrorHandle } from "../utils/errorHandling.js";
+import { UserAuth } from "../utils/userAuth.js";
 
 const app = Router();
 const tempServices: TempUserService = new TempUserService();
-
+const auth:UserAuth=new UserAuth();
 app.post("/tempSignUp", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data: tempUser = req.body;
@@ -33,12 +34,15 @@ app.post("/tempUserSignIn", async (req: Request, res: Response, next: NextFuncti
       return next(new ErrorHandle("please provide both uuid and email to signIn", 400));
     }
     const user = await tempServices.tempUserSignIn(data, next);
+    let response=""
     if (user) {
-      res.status(200).json({
-        success: true,
-        message: "user signIn successfully",
-        user,
-      });
+      if(user.permanentUser){
+        response="tempUser"
+      }
+      else{
+        response="User"
+      }
+      return await auth.sendCookie(user,res,response,200,next)
     }
   } catch (error) {
     console.error(error);

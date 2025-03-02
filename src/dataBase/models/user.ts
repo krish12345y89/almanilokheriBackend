@@ -14,7 +14,7 @@ export type Refferal = {
 
 export interface IUser extends Document {
   uuid: string;
-  ipAddress?:string;
+  ipAddress?: string;
   name: string;
   email: string;
   phoneNumber: string;
@@ -36,8 +36,7 @@ export interface IUser extends Document {
   updatedAt?: Date;
   status: "Pending" | "Approved" | "Rejected" | "Blocked";
 }
- 
-// Embedded Proof Schema
+
 const ProofSchema = new Schema<Proof>({
   publicId: {
     type: String,
@@ -57,13 +56,13 @@ const ProofSchema = new Schema<Proof>({
   },
 });
 
-// Main User Schema
 const schema = new Schema<IUser>(
   {
     uuid: {
       type: String,
       required: [true, "UUID is required"],
       unique: [true, "UUID already exists"],
+      trim: true,
       validate: {
         validator: (value: string) => validator.isUUID(value),
         message: "Invalid UUID format",
@@ -73,23 +72,29 @@ const schema = new Schema<IUser>(
       type: String,
       required: [true, "Name is required"],
       trim: true,
-      maxlength: [20, "The length of the name should not be greater than 20"],
-      match: [/^[a-zA-Z\s]+$/, "Name can only contain alphabets and spaces"], // Restrict to alphabets and spaces
+      maxlength: [50, "The length of the name should not exceed 50 characters"],
+      match: [/^[a-zA-Z\s]+$/, "Name can only contain alphabets and spaces"],
       set: (value: string) => sanitizeHtml(value),
     },
     district: {
       type: String,
+      trim: true,
       required: [true, "District is required"],
-      match: [/^[a-zA-Z\s]+$/, "District can only contain alphabets and spaces"],
+      match: [/^[a-zA-Z]+$/, "District can only contain alphabets"],
       set: (value: string) => sanitizeHtml(value),
     },
-    
+    state: {
+      type: String,
+      match: [/^[a-zA-Z\s]+$/, "State can only contain alphabets and spaces"],
+      required: [true, "State is required"],
+      set: (value: string) => sanitizeHtml(value),
+    },
     email: {
       type: String,
       required: [true, "Email is required"],
       unique: [true, "Email already exists"],
       lowercase: true,
-      maxlength: [320, "Email must not exceed 320 characters"], // Standard max email length
+      maxlength: [320, "Email must not exceed 320 characters"],
       validate: {
         validator: (value: string) => validator.isEmail(value),
         message: "Invalid email format",
@@ -98,18 +103,17 @@ const schema = new Schema<IUser>(
     phoneNumber: {
       type: String,
       required: [true, "Phone number is required"],
-      maxlength: [15, "Phone number must not exceed 15 characters"], // Standard max phone length
+      maxlength: [15, "Phone number must not exceed 15 characters"],
       validate: {
         validator: (value: string) => validator.isMobilePhone(value, "en-IN"),
         message: "Invalid phone number format",
       },
     },
-    
     alternativePhoneNumber: {
       type: String,
       validate: {
         validator: (value: string) =>
-          value ? validator.isMobilePhone(value) : true,
+          value ? validator.isMobilePhone(value) : false,
         message: "Invalid alternative phone number format",
       },
     },
@@ -120,57 +124,68 @@ const schema = new Schema<IUser>(
         validator: (value: string) => {
           const post2000Regex = /^\d{11,13}$/;
           const pre2000Regex = /^\d+\/\d{2}$/;
-
-          console.log("Validating roll number:", value);
           return post2000Regex.test(value) || pre2000Regex.test(value);
         },
         message:
           "Invalid roll number format. Use a 12-digit roll number or the format '400/63'.",
       },
     },
-    ipAddress: {
-      type: String,
-      validate: {
-        validator: (value: string) => validator.isIP(value),
-        message: "Invalid IP address format",
-      },
+    startYear: {
+      type: Number,
+      required: [true, "Start year is required"],
+      min: [1900, "Start year must be a valid year"],
+      max: [new Date().getFullYear(), "Start year cannot be in the future"],
+      maxlength: [4, "year can not extemd the length of 4 "],
     },
-    
+    endYear: {
+      type: Number,
+      required: [true, "End year is required"],
+      min: [1900, "End year must be a valid year"],
+      maxlength: [4, "year can not extemd the length of 4 "],
+      max: [
+        new Date().getFullYear() + 10,
+        "End year cannot exceed 10 years from the current year",
+      ],
+    },
+    batch: {
+      type: String,
+      required: [true, "Batch is required"],
+      maxlength: [20, "Batch must not exceed 20 characters"],
+      trim: true,
+      set: (value: string) => sanitizeHtml(value),
+    },
     profession: {
       type: String,
       required: [true, "Profession is required"],
-      trim: true,
       set: (value: string) => sanitizeHtml(value),
+      match: [
+        /^[a-zA-Z\s]+$/,
+        "profession can only contain alphabets and spaces",
+      ],
     },
     about: {
       type: String,
       required: [true, "About information is required"],
       trim: true,
+      match: [
+        /^[a-zA-Z0-9\s]+$/,
+        "State can only contain alphabets and numbers spaces",
+      ],
       minlength: [10, "About section must be at least 10 characters"],
       set: (value: string) => sanitizeHtml(value),
     },
-    state: {
-      type: String,
-      required: [true, "State is required"],
-      set: (value: string) => sanitizeHtml(value),
-    },
     proof: {
-      type: Schema.Types.Mixed, // Allows flexibility for Proof or Refferal
+      type: Schema.Types.Mixed,
       required: [true, "Proof or referral is required"],
       validate: {
         validator: function (value: Proof | Refferal) {
           if (!value) return false;
-
-          // Check for Proof structure
           if ("url" in value && "publicId" in value) {
             return validator.isURL(value.url) && !!value.publicId;
           }
-
-          // Check for Referral structure
           if ("refferal" in value) {
             return mongoose.Types.ObjectId.isValid(value.refferal);
           }
-
           return false;
         },
         message: "Proof must be valid or include a valid referral ObjectId",
@@ -210,6 +225,10 @@ const schema = new Schema<IUser>(
         message: "Invalid Facebook URL",
       },
     },
+    ipAddress: {
+      type: String,
+      required: [true, "Ip is required"],
+    },
     status: {
       type: String,
       enum: ["Pending", "Approved", "Rejected", "Blocked"],
@@ -218,11 +237,10 @@ const schema = new Schema<IUser>(
     },
   },
   {
-    timestamps: true, 
+    timestamps: true,
   }
 );
 
-// Recursive function to validate keys and values \
 function validateKeysAndValues(obj: any, path: string[] = []) {
   if (typeof obj !== "object" || obj === null) return;
 
@@ -230,9 +248,8 @@ function validateKeysAndValues(obj: any, path: string[] = []) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const fullPath = [...path, key].join(".");
 
-      // Skip Mongoose internal keys
       if (key.startsWith("$")) {
-        continue; // Ignore keys like "$__" that Mongoose uses internally
+        continue;
       }
 
       // Prevent prototype pollution
@@ -253,10 +270,8 @@ function validateKeysAndValues(obj: any, path: string[] = []) {
   }
 }
 
+const IMMUTABLE_FIELDS = ["uuid", "email"];
 
-// Whitelist of fields thats must not be changed
-const IMMUTABLE_FIELDS = []; // currently null
-// Middleware for security checks
 schema.pre("save", async function (next) {
   const doc = this as IUser;
 
@@ -266,14 +281,14 @@ schema.pre("save", async function (next) {
   // Prevent changes to immutable fields
   IMMUTABLE_FIELDS.forEach((field) => {
     if (doc.isModified(field)) {
-      next(new ErrorHandle(`Modification of '${field}' is not allowed`,500));
+      next(new ErrorHandle(`Modification of '${field}' is not allowed`, 500));
     }
   });
 
   // Sanitize all string fields
   Object.keys(doc.toObject()).forEach((key) => {
     if (typeof doc[key] === "string") {
-      doc[key] = sanitizeHtml(doc[key]); // Sanitize all string fields
+      doc[key] = sanitizeHtml(doc[key]);
     }
   });
 
@@ -281,4 +296,3 @@ schema.pre("save", async function (next) {
 });
 
 export const User = model<IUser>("User", schema);
-

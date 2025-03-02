@@ -4,6 +4,7 @@ import { Proof, Refferal } from "../dataBase/models/user.js";
 export type userType = {
   uuid?: string;
   name?: string;
+  ip? : string;
   email?: string;
   phoneNumber?: string;
   proof?: Types.ObjectId | string;
@@ -68,3 +69,16 @@ export type updatePendingUser = {
   state?: string;
   alternativePhoneNumber?: string;
 };
+
+export type userFilter = {
+  page?:number;
+  branch?:string;
+  status?:string;
+  limit?:number;
+  batch?:string;
+  sortType?:any;
+  sort?:number;
+  createdAtStart?:Date;
+  createdAtEnd?:Date;
+  updatedAt?:Date;
+}
