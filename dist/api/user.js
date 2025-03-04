@@ -4,8 +4,10 @@ import mongoose from "mongoose";
 import upload from "../utils/multerS3.js";
 import { ErrorHandle, errorHandler2 } from "../utils/errorHandling.js";
 import { userSignUpValidation, validateErrors, validateSearchUser, } from "../validation/userValidation.js";
+import { UserAuth } from "../utils/userAuth.js";
 const app = Router();
 const userControllers = new userService();
+const auth = new UserAuth();
 app.post("/signUp", upload.fields([
     { name: "avatar", maxCount: 1 },
     { name: "proof", maxCount: 1 },
@@ -56,7 +58,6 @@ app.post("/signUp", upload.fields([
         errorHandler2(error, next);
     }
 });
-app.post;
 app.get("/searchUser", validateSearchUser, validateErrors, async (req, res, next) => {
     try {
         const { name, email, phoneNumber, rollNo } = req.query;

@@ -25,6 +25,7 @@ const schema = new Schema({
         type: String,
         required: [true, "UUID is required"],
         unique: [true, "UUID already exists"],
+        trim: true,
         validate: {
             validator: (value) => validator.isUUID(value),
             message: "Invalid UUID format",
@@ -40,15 +41,14 @@ const schema = new Schema({
     },
     district: {
         type: String,
+        trim: true,
         required: [true, "District is required"],
-        match: [
-            /^[a-zA-Z\s]+$/,
-            "District can only contain alphabets and spaces",
-        ],
+        match: [/^[a-zA-Z]+$/, "District can only contain alphabets"],
         set: (value) => sanitizeHtml(value),
     },
     state: {
         type: String,
+        match: [/^[a-zA-Z\s]+$/, "State can only contain alphabets and spaces"],
         required: [true, "State is required"],
         set: (value) => sanitizeHtml(value),
     },
@@ -75,7 +75,7 @@ const schema = new Schema({
     alternativePhoneNumber: {
         type: String,
         validate: {
-            validator: (value) => value ? validator.isMobilePhone(value) : true,
+            validator: (value) => value ? validator.isMobilePhone(value) : false,
             message: "Invalid alternative phone number format",
         },
     },
@@ -96,11 +96,13 @@ const schema = new Schema({
         required: [true, "Start year is required"],
         min: [1900, "Start year must be a valid year"],
         max: [new Date().getFullYear(), "Start year cannot be in the future"],
+        maxlength: [4, "year can not extemd the length of 4 "],
     },
     endYear: {
         type: Number,
         required: [true, "End year is required"],
         min: [1900, "End year must be a valid year"],
+        maxlength: [4, "year can not extemd the length of 4 "],
         max: [
             new Date().getFullYear() + 10,
             "End year cannot exceed 10 years from the current year",
@@ -116,13 +118,20 @@ const schema = new Schema({
     profession: {
         type: String,
         required: [true, "Profession is required"],
-        trim: true,
         set: (value) => sanitizeHtml(value),
+        match: [
+            /^[a-zA-Z\s]+$/,
+            "profession can only contain alphabets and spaces",
+        ],
     },
     about: {
         type: String,
         required: [true, "About information is required"],
         trim: true,
+        match: [
+            /^[a-zA-Z0-9\s]+$/,
+            "State can only contain alphabets and numbers spaces",
+        ],
         minlength: [10, "About section must be at least 10 characters"],
         set: (value) => sanitizeHtml(value),
     },
@@ -212,9 +221,7 @@ function validateKeysAndValues(obj, path = []) {
         }
     }
 }
-// Whitelist of fields thats must not be changed
-const IMMUTABLE_FIELDS = [];
-// Middleware for security checks
+const IMMUTABLE_FIELDS = ["uuid", "email"];
 schema.pre("save", async function (next) {
     const doc = this;
     // Validate keys recursively for NoSQL injection and prototype pollution

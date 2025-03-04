@@ -4,6 +4,7 @@ import { Request, NextFunction, Response } from "express";
 import jwt from "jsonwebtoken";
 import { ErrorHandle } from "./errorHandling.js";
 import { ITempUser } from "../dataBase/models/tempUser.js";
+import { AdminUser } from "../dataBase/models/adminUser.js";
 config();
 const adminSecret = process.env.ADMIN_SECRET;
 const jwtSecret = process.env.JWT_SECRET;
@@ -61,6 +62,11 @@ export class UserAuth {
         return next(new ErrorHandle("please provide a valid token", 401));
       }
       (req as any).user = verification._id;
+      let id = (req as any).user;
+      const admin = await AdminUser.findById(id);
+      if (!admin) {
+        return next(new ErrorHandle("admin not found", 401));
+      }
       next();
     } catch (error) {
       console.error("Error in authorisation:", error);
@@ -68,32 +74,27 @@ export class UserAuth {
     }
   }
 
-  async isAdmin(req: Request, next: NextFunction) {
+  async isAdmin() {
     try {
       const token = req.cookies["token"];
       if (!token) {
-        throw new Error("Login first");
+        return next(new ErrorHandle("please login first", 401));
       }
-      const verification = JSON.parse(
+      const verification: ITempUser = JSON.parse(
         JSON.stringify(jwt.verify(token, jwtSecret))
       );
       if (!verification) {
-        throw new Error("JWT verification failed");
+        return next(new ErrorHandle("please provide a valid token", 401));
       }
-      const secret = verification.secret;
-      if (!secret) {
-        throw new Error("Invalid token structure");
-      }
-
-      const validSec = await this.comparePassword(secret, adminSecret, next);
-      if (!validSec || !verification.isAdmin) {
-        throw new Error("Unauthorized");
-      }
-
       (req as any).user = verification._id;
-      next();
+      let id = (req as any).user;
+      const admin = await AdminUser.findById(id);
+      if (!admin) {
+        return next(new ErrorHandle("admin not found", 401));
+      }
+      next()
     } catch (error) {
-      console.error("Error in admin authorisation:", error);
+      console.error("Error in authorisation:", error);
       next(error);
     }
   }
