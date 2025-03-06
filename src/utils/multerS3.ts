@@ -43,7 +43,6 @@ export const upload = multer({
   },
 });
 
-export default upload;
 
 const deleteFile = async (fileKey: string): Promise<boolean> => {
   try {
