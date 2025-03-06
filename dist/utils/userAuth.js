@@ -1,9 +1,13 @@
 import { compare, hash } from "bcrypt";
 import { config } from "dotenv";
 import jwt from "jsonwebtoken";
+import { ErrorHandle } from "./errorHandling.js";
+import { AdminUser } from "../dataBase/models/adminUser.js";
 config();
 const adminSecret = process.env.ADMIN_SECRET;
 const jwtSecret = process.env.JWT_SECRET;
+let req;
+let next;
 if (!jwtSecret) {
     throw new Error("JWT secret is not defined in environment variables");
 }
@@ -35,17 +39,22 @@ export class UserAuth {
             next(error);
         }
     }
-    async isAuthorised(req, next) {
+    async isAuthorised() {
         try {
             const token = req.cookies["token"];
             if (!token) {
-                throw new Error("Login first");
+                return next(new ErrorHandle("please login first", 401));
             }
-            const verification = jwt.verify(token, jwtSecret);
+            const verification = JSON.parse(JSON.stringify(jwt.verify(token, jwtSecret)));
             if (!verification) {
-                throw new Error("JWT verification failed");
+                return next(new ErrorHandle("please provide a valid token", 401));
             }
             req.user = verification._id;
+            let id = req.user;
+            const admin = await AdminUser.findById(id);
+            if (!admin) {
+                return next(new ErrorHandle("admin not found", 401));
+            }
             next();
         }
         catch (error) {
@@ -53,29 +62,26 @@ export class UserAuth {
             next(error);
         }
     }
-    async isAdmin(req, next) {
+    async isAdmin() {
         try {
             const token = req.cookies["token"];
             if (!token) {
-                throw new Error("Login first");
+                return next(new ErrorHandle("please login first", 401));
             }
-            const verification = jwt.verify(token, jwtSecret);
+            const verification = JSON.parse(JSON.stringify(jwt.verify(token, jwtSecret)));
             if (!verification) {
-                throw new Error("JWT verification failed");
-            }
-            const secret = verification.secret;
-            if (!secret) {
-                throw new Error("Invalid token structure");
-            }
-            const validSec = await this.comparePassword(secret, adminSecret, next);
-            if (!validSec || !verification.isAdmin) {
-                throw new Error("Unauthorized");
+                return next(new ErrorHandle("please provide a valid token", 401));
             }
             req.user = verification._id;
+            let id = req.user;
+            const admin = await AdminUser.findById(id);
+            if (!admin) {
+                return next(new ErrorHandle("admin not found", 401));
+            }
             next();
         }
         catch (error) {
-            console.error("Error in admin authorisation:", error);
+            console.error("Error in authorisation:", error);
             next(error);
         }
     }

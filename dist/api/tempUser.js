@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { TempUserService } from "../service/tempUser.js";
 import { ErrorHandle } from "../utils/errorHandling.js";
+import { UserAuth } from "../utils/userAuth.js";
 const app = Router();
 const tempServices = new TempUserService();
+const auth = new UserAuth();
 app.post("/tempSignUp", async (req, res, next) => {
     try {
         const data = req.body;
@@ -30,12 +32,15 @@ app.post("/tempUserSignIn", async (req, res, next) => {
             return next(new ErrorHandle("please provide both uuid and email to signIn", 400));
         }
         const user = await tempServices.tempUserSignIn(data, next);
+        let response = "";
         if (user) {
-            res.status(200).json({
-                success: true,
-                message: "user signIn successfully",
-                user,
-            });
+            if (user.permanentUser) {
+                response = "tempUser";
+            }
+            else {
+                response = "User";
+            }
+            return await auth.sendCookie(user, res, response, 200, next);
         }
     }
     catch (error) {
