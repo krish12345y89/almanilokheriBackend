@@ -1,20 +1,28 @@
 import { validationResult } from "express-validator";
-import { Chat,Request, Message } from "../dataBase/models/chat.js";
+import { Chat, requests, Message } from "../dataBase/models/chat.js";
 import { User } from "../dataBase/models/user.js";
 import { ErrorHandle } from "../utils/errorHandling.js";
+import { NextFunction, Request, Response } from "express";
+import { NextRotationDateType } from "aws-sdk/clients/secretsmanager.js";
 
-export const newGroupChat = async (req, res, next) => {
+export const newGroupChat = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const file = req.file;
+    const file: Express.MulterS3.File | any = req.file;
     const { chatName, members } = req.body;
     if (!chatName || !members || !file)
       return next(new ErrorHandle("please enter all fields", 400));
     if (members.length < 3)
-      return next(new ErrorHandle("members can not be less than 3", 400));
+      return next(
+        new ErrorHandle("members can not be less than 3 in a group chat", 400)
+      );
     const chat = new Chat({
       chatName,
       members,
-      file: file.buffer.toString("base64"),
+      file: file.location,
       groupChat: true,
     });
     await chat.save();
@@ -35,12 +43,17 @@ export const newGroupChat = async (req, res, next) => {
   }
 };
 
-export const requestSend = async (req, res, next) => {
-  const { sender, receiver } = req.body;
-  if (!sender) return next(new ErrorHandle("please login first ", 401));
+export const requestSend = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { receiver } = req.body;
+  const { sender } = (req as any).user;
+  if (!receiver) return next(new ErrorHandle("please login first ", 401));
   if (!sender || receiver)
     return next(new ErrorHandle("please enter both sender and receiver", 400));
-  const request = await Request.create({
+  const request = await requests.create({
     sender,
     receiver,
     status: "pending",
@@ -51,13 +64,17 @@ export const requestSend = async (req, res, next) => {
       .status(201);
 };
 
-export const Requests = async (req, res, next) => {
+export const Requests = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { id } = req.body;
+    const { id } = (req as any).user;
     if (!id) return next(new ErrorHandle("please login first", 401));
     const user = User.findById(id);
     if (!user) return next(new ErrorHandle("user not found", 400));
-    const result = await Request.find({ receiver: id });
+    const result = await requests.find({ receiver: id, status: "Pending" });
     res.json({ sucess: true, result }).status(200);
   } catch (error) {
     console.log(error);
@@ -65,7 +82,11 @@ export const Requests = async (req, res, next) => {
   }
 };
 
-export const changeStatus = async (req, res, next) => {
+export const changeStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { chatId, requestId, status } = req.body;
 
@@ -73,7 +94,7 @@ export const changeStatus = async (req, res, next) => {
     if (!chat) {
       return next(new ErrorHandle("chat not found", 400));
     }
-    const request = await Request.findById(requestId);
+    const request = await requests.findById(requestId);
     if (!request) {
       return next(new ErrorHandle("request not found", 400));
     }
@@ -95,7 +116,7 @@ export const changeStatus = async (req, res, next) => {
           avatar: sender.avatar,
           chat: chatId,
         });
-        await res
+        res
           .json({
             success: true,
             message: `${sender.name} is your friend now`,
@@ -130,9 +151,13 @@ export const changeStatus = async (req, res, next) => {
     return next(new ErrorHandle("failed to change status", 500));
   }
 };
-export const getNotifications = async (req, res, next) => {
+export const getNotifications = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { id } = req.body;
+    const { id } = (req as any).user;
     if (!id) {
       return next(new ErrorHandle("please login first", 401));
     }
@@ -140,7 +165,10 @@ export const getNotifications = async (req, res, next) => {
     if (!user) {
       return next(new ErrorHandle("user not found", 400));
     }
-    const notifications = await Notification.find({ receiver: id });
+    const notifications = await requests.find({
+      receiver: id,
+      status: "Pending",
+    });
     await res
       .json({
         success: true,
@@ -177,22 +205,25 @@ export const sendMessage = async (req, res, next) => {
     return next(new ErrorHandle("failed to sendMessage", 500));
   }
 };
-export const sendAttachment = async (req, res, next) => {
+export const sendAttachment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return next(new ErrorHandle("please enter all fields", 500));
-    }
     const { chatId } = req.params;
+    const senderId = (req as any).user;
+    const file: Express.MulterS3.File | any = req.file;
+    const { message } = req.body;
     if (!chatId) return next(new ErrorHandle("please provide chatId", 400));
     const chat = await Chat.findById(chatId);
     if (!chat) return next(new ErrorHandle("chat not found", 400));
-    const { file, senderId, receiverId } = req.body;
+    const { receiverId } = req.body;
     const newMessage = {
       sender: senderId,
       receiver: receiverId,
-      content: "",
-      file: file.buffer.toString(),
+      content: message || "",
+      file: file.location,
       chat: chatId,
     };
     const data = await Message.create(newMessage);
@@ -203,7 +234,11 @@ export const sendAttachment = async (req, res, next) => {
   }
 };
 
-export const getChat = async (req, res, next) => {
+export const getChat = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -220,7 +255,11 @@ export const getChat = async (req, res, next) => {
   }
 };
 
-export const getAllChats = async (req, res, next) => {
+export const getAllChats = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -239,7 +278,11 @@ export const getAllChats = async (req, res, next) => {
     return next(new ErrorHandle("failed to get allChats", 500));
   }
 };
-export const getAllMessages = async (req, res, next) => {
+export const getAllMessages = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -249,7 +292,7 @@ export const getAllMessages = async (req, res, next) => {
     if (!chatId) return next(new ErrorHandle("please provide chatId", 400));
     const chat = await Chat.findById(chatId);
     if (!chat) return next(new ErrorHandle("chat not found", 400));
-    const { id } = req.body;
+    const { id } = (req as any).user;
     if (!id) return next(new ErrorHandle("please login first", 401));
     const user = await User.findById(id);
     if (!user) return next(new ErrorHandle("user not found", 400));
@@ -265,7 +308,11 @@ export const getAllMessages = async (req, res, next) => {
   }
 };
 
-export const deleteMessage = async (req, res, next) => {
+export const deleteMessage = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

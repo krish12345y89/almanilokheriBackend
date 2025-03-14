@@ -49,9 +49,6 @@ export class GalleryRepository {
             if (!gallery) {
                 return next(new ErrorHandle("please provide a valid id.", 404));
             }
-            if (data.document) {
-                await deleteS3Files(data.document.map((doc) => doc.file), next);
-            }
             const result = await Gallery.findByIdAndUpdate(id, data, { new: true });
             if (!result) {
                 return next(new ErrorHandle("Gallery not found.", 404));

@@ -10,6 +10,7 @@ export class AdminService {
                 const newData = Object.fromEntries(Object.entries(data).filter(([_, value]) => {
                     return value !== null;
                 }));
+                console.log(newData);
                 const result = await this.adminRepository.getAllUsers(newData, next);
                 return result;
             }

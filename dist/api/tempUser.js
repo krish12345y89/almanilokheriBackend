@@ -8,6 +8,7 @@ const auth = new UserAuth();
 app.post("/tempSignUp", async (req, res, next) => {
     try {
         const data = req.body;
+        console.log(data);
         if (!data.email || !data.uuid) {
             return next(new ErrorHandle("Please provide both uuid and email", 400));
         }
@@ -28,19 +29,20 @@ app.post("/tempSignUp", async (req, res, next) => {
 app.post("/tempUserSignIn", async (req, res, next) => {
     try {
         const data = req.body;
-        if (!data.email || !data.uuid) {
-            return next(new ErrorHandle("please provide both uuid and email to signIn", 400));
-        }
+        console.log(data);
         const user = await tempServices.tempUserSignIn(data, next);
+        if (!user) {
+            return next(new ErrorHandle("user not found", 400));
+        }
         let response = "";
         if (user) {
-            if (user.permanentUser) {
+            if (user?.permanentUser !== true) {
                 response = "tempUser";
             }
             else {
                 response = "User";
             }
-            return await auth.sendCookie(user, res, response, 200, next);
+            return await auth.sendCookie(user._id, res, response, 200, next);
         }
     }
     catch (error) {

@@ -37,7 +37,9 @@ export class UserRepository {
                 search.push({ nemail: { $regex: new RegExp(data.email, "i") } });
             }
             if (data.phoneNumber) {
-                search.push({ phoneNumber: { $regex: new RegExp(data.phoneNumber, "i") } });
+                search.push({
+                    phoneNumber: { $regex: new RegExp(data.phoneNumber, "i") },
+                });
             }
             if (data.rollNo) {
                 search.push({ rollNo: { $regex: new RegExp(data.rollNo, "i") } });
@@ -105,7 +107,8 @@ export class UserRepository {
     }
     async updateStatus(_id, status, next) {
         try {
-            const user = await User.findByIdAndUpdate({ _id: _id }, { $set: { status: status } });
+            const user = await User.findByIdAndUpdate(_id, { $set: { status: status, permanentUser: true } });
+            await TempUser.findOneAndUpdate({ uuid: user.uuid }, { permanentUser: true });
             if (!user) {
                 throw new Error("There is no user to update the status");
             }

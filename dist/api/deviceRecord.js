@@ -1,79 +1,77 @@
-import { isUUID } from "validator";
+import express from "express";
+import { v4 as uuid } from "uuid";
 import { DeviceRecordModel } from "../dataBase/models/device.js";
 import { DailyDeviceRecordModel } from "../dataBase/models/deviceRecord.js";
-export const insertDeviceRecord = async (req, res) => {
+import validator from "validator";
+import { ErrorHandle } from "../utils/errorHandling.js";
+const { isUUID } = validator;
+const router = express.Router();
+router.post("/deviceRecord", async (req, res, next) => {
     const { DeviceId } = req.body;
+    if (!DeviceId) {
+        return next(new ErrorHandle("Please provide DeviceId", 400));
+    }
+    if (!validator.isUUID(DeviceId)) {
+        return res.status(400).json({ error: "Invalid Device ID" });
+    }
     try {
-        if (isUUID(DeviceId)) {
-            const id = process.env.PrivetKey;
-            const { count } = await DeviceRecordModel.findOne({ _id: id });
-            const currentRec = parseInt(count);
-            await DeviceRecordModel.findByIdAndUpdate(id, { count: currentRec + 1 });
+        const id = "67d4084697355ae0b7f5ea25";
+        const device = await DeviceRecordModel.findById(id);
+        console.log("Device Found:", device);
+        if (!device) {
+            return res.status(404).json({ error: "Device record not found" });
         }
+        device.count = String((Number(device.count) || 0) + 1);
+        await device.save();
+        res
+            .status(200)
+            .json({ message: "Device record updated", count: device.count });
     }
     catch (error) {
-        res.status(400).json({ err: error.message });
+        console.error("Error:", error);
+        res.status(500).json({ error: error.message });
     }
-};
-export const getDeviceRecord = async (req, res) => {
+});
+router.get("/deviceRecord", async (req, res) => {
     try {
         const id = process.env.PrivetKey;
-        const data = await DeviceRecordModel.findOne({ _id: id });
-        res.status(200).json({ data: data });
-    }
-    catch (error) {
-        res.status(400).json({ err: error.message });
-    }
-};
-export const insertdeviceDailyRecord = async (req, res) => {
-    const { DeviceId } = req.body;
-    try {
-        if (isUUID(DeviceId)) {
-            const now = new Date();
-            const year = now.getFullYear();
-            const day = now.getDate();
-            const months = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
-            const currentMonth = months[now.getMonth()];
-            const count = await DailyDeviceRecordModel.findOne({
-                day: day,
-                year: year,
-                month: currentMonth,
-            });
-            if (count) {
-                const currentRec = parseInt(count.count);
-                await DailyDeviceRecordModel.findOneAndUpdate({
-                    day: day,
-                    year: year,
-                    month: currentMonth,
-                }, { count: currentRec + 1 });
-                res.status(200).json({ count });
-            }
-            else {
-                const data = new DailyDeviceRecordModel({
-                    day: day,
-                    year: year,
-                    month: currentMonth,
-                    count: "1",
-                });
-                await data.save();
-                res.status(200).json({ msg: "first  entry of day" });
-            }
+        const data = await DeviceRecordModel.findById(id);
+        if (!data) {
+            return res.status(404).json({ error: "Device record not found" });
         }
+        res.status(200).json({ data });
     }
     catch (error) {
-        res.status(400).json({ err: error.message });
+        res.status(500).json({ error: error.message });
     }
-};
+});
+router.post("/deviceDailyRecord", async (req, res, next) => {
+    try {
+        const { DeviceId } = req.body;
+        console.log(uuid());
+        if (!DeviceId) {
+            return next(new ErrorHandle("please provide deviceId", 400));
+        }
+        if (!isUUID(DeviceId)) {
+            return res.status(400).json({ error: "Invalid Device ID" });
+        }
+        const now = new Date();
+        const year = now.getFullYear();
+        const day = now.getDate();
+        const month = now.toLocaleString("en-US", { month: "short" });
+        const record = await DailyDeviceRecordModel.findOne({ day, year, month });
+        if (record) {
+            record.count = String((Number(record.count) || 0) + 1);
+            await record.save();
+            return res
+                .status(200)
+                .json({ message: "Daily record updated", count: record.count });
+        }
+        await new DailyDeviceRecordModel({ day, year, month, count: 1 }).save();
+        res.status(201).json({ message: "First entry of the day", count: 1 });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+export default router;

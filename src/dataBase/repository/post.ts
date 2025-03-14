@@ -8,14 +8,11 @@ export class PostRepository {
 
   async findPostById(id: string) {
     try {
-        const result = await Post.findById(id);
-        if(result){
-            return result
-        }
-    } catch (error) {
-        
-    }
-
+      const result = await Post.findById(id);
+      if (result) {
+        return result;
+      }
+    } catch (error) {}
   }
   async createPost(data: IPost, next: NextFunction) {
     try {
@@ -41,25 +38,25 @@ export class PostRepository {
     }
   }
 
-  async getAllPost(next:NextFunction){
+  async getAllPost(next: NextFunction) {
     try {
-        const result = await Post.find({});
-        if(result){
-            return result
-        }
-    } catch (error) {
-        
-    }
+      const result = await Post.find({});
+      if (result) {
+        return result;
+      }
+    } catch (error) {}
   }
 
-  async deletePost(id:string,next:NextFunction){
+  async deletePost(id: string, next: NextFunction) {
     try {
-        const result = await Post.findById(id);
-        if(result){
-            await result.deleteOne()
-        }
+      const result = await Post.findById(id);
+      if (result) {
+        await result.deleteOne();
+      }
+      return "post deleted successfully";
     } catch (error) {
-        
+      console.error(error);
+      return next(new ErrorHandle("failed to delete post", 500));
     }
   }
 }

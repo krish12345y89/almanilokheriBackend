@@ -17,6 +17,7 @@ export class TempUserService {
         };
         this.tempUserSignIn = async (data, next) => {
             try {
+                console.log("data in servie layer", data);
                 if (!data.email || !data.uuid) {
                     return next(new ErrorHandle("Please provide both uuid and email to sign in", 400));
                 }

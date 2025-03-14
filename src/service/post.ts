@@ -113,7 +113,15 @@ export class PostService {
       if (!post) {
         return next(new ErrorHandle("post not found", 400));
       }
-      await this.postRepository.deletePost(id, next);
+      if (post.documents) {
+        await deleteS3Files(
+          post.documents.map(({ file }) => file),
+          next
+        );
+      }
+      const result = await this.postRepository.deletePost(id, next);
+
+      return result;
     } catch (error) {}
   }
 }

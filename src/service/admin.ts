@@ -19,6 +19,7 @@ export class AdminService {
             return value!==null
         })
       )
+      console.log(newData)
       const result = await this.adminRepository.getAllUsers(newData,next)
       return result
     } catch (error) {

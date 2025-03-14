@@ -1,6 +1,6 @@
 import { model, Schema } from "mongoose";
 const schema = new Schema({
-    name: {
+    userName: {
         type: String,
         required: [true, "please enter your name"],
     },

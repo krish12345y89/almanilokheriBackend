@@ -4,7 +4,7 @@ import { AdminUser } from "../models/adminUser.js";
 import { ErrorHandle } from "../../utils/errorHandling.js";
 import { userFilter } from "../../types/user.js";
 import { User } from "../models/user.js";
-import xlsx from "xlsx"
+import xlsx from "xlsx";
 
 export class AdminRepository {
   private auth;
@@ -29,9 +29,7 @@ export class AdminRepository {
         data.createdAtStart &&
         isNaN(new Date(data.createdAtStart).getTime())
       ) {
-        return next(
-          new ErrorHandle("Invalid createdAtStart date format", 400)
-        );
+        return next(new ErrorHandle("Invalid createdAtStart date format", 400));
       }
       if (data.createdAtEnd && isNaN(new Date(data.createdAtEnd).getTime())) {
         return next(new ErrorHandle("Invalid createdAtEnd date format", 400));
@@ -39,8 +37,8 @@ export class AdminRepository {
 
       const query: any = {
         ...(data.status && { status: data.status }),
+        ...(data.branch && { batch: data.branch }),
         ...(data.batch && { batch: data.batch }),
-        ...(data.branch && { branch: data.branch }),
         ...(data.createdAtStart && {
           createdAt: {
             $gte: new Date(data.createdAtStart),
@@ -48,45 +46,20 @@ export class AdminRepository {
           },
         }),
       };
-
+      console.log(new Date(data.createdAtStart))
+      console.log(query)
       const pipeline = [
         { $match: query },
         { $sort: { [data.sortType || "createdAt"]: data.sort ?? -1 } as any },
         { $skip: data.page ? (data.page - 1) * (data.limit ?? 20) : 0 },
         { $limit: data.limit ?? 20 },
-        {
-          $project: {
-            name: 1,
-            email: 1,
-            rollNo: 1,
-            phoneNumber: 1,
-            branch: 1,
-            batch: 1,
-          },
-        },
       ];
 
       const users = await User.aggregate(pipeline);
       return users;
-
     } catch (error) {
       console.error("Error fetching users:", error);
       next(new ErrorHandle("Failed to get all users", 500));
     }
   };
-
-  makeUsersFromXlsx = async(next:NextFunction,files:any)=>{
-    try {
-      const file = xlsx.readFile(files);
-      const firstSheet = file.SheetNames[0];
-      const raw = file.Workbook[firstSheet];
-      
-
-
-    } catch (error) {
-      next(new ErrorHandle("failed to create users",500))
-    }
-  }
 }
-
-

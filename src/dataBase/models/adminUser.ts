@@ -1,13 +1,13 @@
 import { model, Document, Schema } from "mongoose";
 export interface IAdminUser extends Document {
-  name: string;
+  userName: string;
   email: string;
   password: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 const schema = new Schema<IAdminUser>({
-  name: {
+  userName: {
     type: String,
     required: [true, "please enter your name"],
   },

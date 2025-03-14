@@ -3,6 +3,7 @@ import multerS3 from "multer-s3";
 import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import { ErrorHandle } from "./errorHandling.js";
+import { NodeHttpHandler } from "@aws-sdk/node-http-handler";
 dotenv.config();
 const accessKey = process.env.AWS_ACCESS_KEY;
 const secretKey = process.env.AWS_SECRET_KEY;
@@ -17,6 +18,10 @@ const s3Client = new S3Client({
         accessKeyId: accessKey,
         secretAccessKey: secretKey,
     },
+    requestHandler: new NodeHttpHandler({
+        connectionTimeout: 300000,
+        requestTimeout: 300000,
+    }),
 });
 const s3Storage = multerS3({
     s3: s3Client,
@@ -27,7 +32,7 @@ const s3Storage = multerS3({
     key: (req, file, cb) => {
         const fileName = `${Date.now()}-${file.originalname}`;
         cb(null, fileName);
-    },
+    }
 });
 export const upload = multer({
     storage: s3Storage,
@@ -35,7 +40,6 @@ export const upload = multer({
         fileSize: 1 * 1024 * 1024,
     },
 });
-export default upload;
 const deleteFile = async (fileKey) => {
     try {
         const command = new DeleteObjectCommand({

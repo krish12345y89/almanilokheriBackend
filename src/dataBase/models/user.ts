@@ -14,8 +14,10 @@ export type Refferal = {
 
 export interface IUser extends Document {
   uuid: string;
+  permanentUser?:boolean;
   ipAddress?: string;
   name: string;
+  branch:string;
   email: string;
   phoneNumber: string;
   proof: Proof | Refferal;
@@ -154,6 +156,10 @@ const schema = new Schema<IUser>(
       trim: true,
       set: (value: string) => sanitizeHtml(value),
     },
+    branch:{
+      type:String,
+      required:[true,"please provide your branch"]
+    },
     profession: {
       type: String,
       required: [true, "Profession is required"],
@@ -235,6 +241,10 @@ const schema = new Schema<IUser>(
       default: "Pending",
       required: [true, "Status is required"],
     },
+    permanentUser:{
+      type:Boolean,
+      default:false
+    }
   },
   {
     timestamps: true,
@@ -270,7 +280,7 @@ function validateKeysAndValues(obj: any, path: string[] = []) {
   }
 }
 
-const IMMUTABLE_FIELDS = ["uuid", "email"];
+const IMMUTABLE_FIELDS = [];
 
 schema.pre("save", async function (next) {
   const doc = this as IUser;

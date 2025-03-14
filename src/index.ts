@@ -2,8 +2,10 @@ import express, { NextFunction, Request } from "express";
 import cluster from "cluster";
 import { v4 as uuidv4 } from "uuid";
 import { config } from "dotenv";
+import UserPosts from "./api/post.js"
 import userRoutes from "./api/user.js";
 import adminRoutes from "./api/admin.js";
+import DeviceRecoed from "./api/deviceRecord.js"
 import tempUserRoutes from "./api/tempUser.js";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -18,13 +20,14 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { ErrorHandle, errorHandler, errorHandler2 } from "./utils/errorHandling.js";
 import { TempUser } from "./dataBase/models/tempUser.js";
+import AdminDashBoardRoutes from "./api/adminDashBoard.js"
 import { handleInstituteCollection } from "./utils/xlsxtojson.js";
-import upload from "./utils/multerS3.js";
+import {upload} from "./utils/multerS3.js";
+import Galleries from "./api/gallery.js"
 import uploadStorage from "./utils/multerStorage.js";
 config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
 const cpuLength = os.cpus().length;
 const PORT = process.env.PORT || 5000;
 const app = express();
@@ -36,6 +39,10 @@ app.use(express.static(path.resolve(__dirname, "./public")));
 app.use("/api/tempUsers", tempUserRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/adminDashBoard", AdminDashBoardRoutes);
+app.use("/api/posts",UserPosts);
+app.use("/api/gallery",Galleries);
+app.use("/api/device",DeviceRecoed)
 app.post("/dataInsert",uploadStorage.single("file"),handleInstituteCollection)
 
 let server: any;

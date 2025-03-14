@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import upload from "../utils/multerS3.js";
+import { upload } from "../utils/multerS3.js";
 import GalleryRepository from "../dataBase/repository/gallery.js";
 import { ErrorHandle } from "../utils/errorHandling.js";
 import { IGallery } from "../dataBase/models/gallery.js";
@@ -36,24 +36,31 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       let data: IGallery = req.body;
+      if (!data.gallery && !data.event && !data.news) {
+        data.gallery = true;
+      }
+      let documents = [];
+      console.log(data.gallery);
       if (!data.title) {
         return next(new ErrorHandle("Title is required.", 400));
       }
-      let files: Express.Multer.File[] | any = req.files;
-      if (data.gallery && !files) {
+      let files: Express.MulterS3.File[] | any = req.files;
+      if (data.gallery && (!files || files.length === 0)) {
+        console.log("No images provided.");
         return next(
-          new ErrorHandle("Please provide images to add in fallery.", 400)
+          new ErrorHandle("Please provide images to add in gallery.", 400)
         );
       }
       if ((data.event || data.news) && !data.description) {
         return next(new ErrorHandle("Please provide description.", 400));
       }
       if (files) {
-        files.map((file: Express.Multer.File) => {
-          data.document.push({ file: file.path, fileName: file.originalname });
+        files.map((file: Express.MulterS3.File) => {
+          documents.push({ file: file.location, fileName: file.originalname });
         });
+        data.document = documents;
       }
-
+      console.log(data);
       const result = await GalleryRepository.addGallery(data, next);
       if (result) {
         return res.status(201).json({
@@ -63,6 +70,7 @@ router.post(
         });
       }
     } catch (error) {
+      console.error(error);
       next(new ErrorHandle("Error adding gallery.", 500));
     }
   }
@@ -91,8 +99,61 @@ router.put(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const data: IGallery = req.body;
-      const result = await GalleryRepository.updateGallery(id, data, next);
+      let data: any = {};
+      const files: Express.MulterS3.File[] | any = req.files;
+      let documents = [];
+      const { title, description, imagesToDelete, gallery, event, news } =
+        req.body;
+      if (
+        !title &&
+        !description &&
+        !imagesToDelete &&
+        !gallery &&
+        !event &&
+        !news &&
+        !files
+      ) {
+        return next(new ErrorHandle("please provide any data to update", 400));
+      }
+      let imagesToDeleteIndex = JSON.parse(imagesToDelete) || [];
+      console.log(imagesToDelete,imagesToDeleteIndex)
+      if (title) {
+        data.title = title;
+      }
+      if (description) {
+        data.description = description;
+      }
+      if (gallery && !event && !news) {
+        data.gallery = true;
+        data.event = false;
+        data.news = false;
+      } else if (event && !gallery && !news) {
+        data.event = true;
+        data.gallery = false;
+        data.news = false;
+      } else if (news && !event && !gallery) {
+        data.news = true;
+        data.event = false;
+        data.gallery = false;
+      }
+      if (files) {
+        files.forEach((file: Express.MulterS3.File) => {
+          documents.push({
+            file: file.location,
+            fileName: file.originalname,
+          });
+        });
+        data.document = documents;
+      }
+      console.log("Updating gallery with data:", data);
+
+      const result = await galleryService.updateGallery(
+        id,
+        imagesToDeleteIndex,
+        data,
+        next
+      );
+
       res.status(200).json({
         success: true,
         message: "Gallery updated successfully.",
@@ -107,13 +168,33 @@ router.put(
 router.get(
   "/allGallery",
   async (
-    req: Request<{}, {}, {}, { page: number;skip:number, date: Date,query:"galley"| "event" | "news" }>,
+    req: Request<
+      {},
+      {},
+      {},
+      {
+        page: number;
+        skip: number;
+        date: Date;
+        query: "gallery" | "event" | "news";
+      }
+    >,
     res: Response,
     next: NextFunction
   ) => {
     try {
-      const { page,skip, date ,query} = req.query;
-      const results = await galleryService.getAllGallery(page,skip,query, date, next);
+      let { page, skip, date, query } = req.query;
+      if (!query) {
+        query = "gallery";
+      }
+
+      const results = await galleryService.getAllGallery(
+        page,
+        skip,
+        query,
+        date,
+        next
+      );
       if (results) {
         res.status(200).json({
           success: true,

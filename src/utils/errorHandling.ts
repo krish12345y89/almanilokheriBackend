@@ -1,6 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-
-// Error class for structured errors
 export class ErrorHandle extends Error {
   public statusCode: number;
   public isFunctional: boolean;
@@ -202,13 +200,10 @@ export const errorHandler2 = async (err: any, next: NextFunction) => {
       );
       return;
     }
-
-    // Generic error handler
     console.error("Unhandled Error:", err);
     const errorMessage = err.message || `Internal Server Error`;
     next(new ErrorHandle(errorMessage, 500, false, true));
   } catch (error) {
-    // If error handling itself fails
     console.error("Error handling failed:", error);
     next(new ErrorHandle("Error handling failed", 500, false, true));
   }

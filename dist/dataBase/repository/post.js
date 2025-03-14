@@ -9,8 +9,7 @@ export class PostRepository {
                 return result;
             }
         }
-        catch (error) {
-        }
+        catch (error) { }
     }
     async createPost(data, next) {
         try {
@@ -43,8 +42,7 @@ export class PostRepository {
                 return result;
             }
         }
-        catch (error) {
-        }
+        catch (error) { }
     }
     async deletePost(id, next) {
         try {
@@ -52,8 +50,11 @@ export class PostRepository {
             if (result) {
                 await result.deleteOne();
             }
+            return "post deleted successfully";
         }
         catch (error) {
+            console.error(error);
+            return next(new ErrorHandle("failed to delete post", 500));
         }
     }
 }

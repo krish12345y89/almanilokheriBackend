@@ -3,7 +3,7 @@ import { userService } from "../service/user.js";
 import { IUser, User } from "../dataBase/models/user.js";
 import mongoose, { ObjectId } from "mongoose";
 import { searchUserType, userType } from "../types/user.js";
-import upload from "../utils/multerS3.js";
+import {upload} from "../utils/multerS3.js";
 import { ErrorHandle, errorHandler2 } from "../utils/errorHandling.js";
 import {
   userSignUpValidation,
@@ -231,7 +231,7 @@ app.put(
 );
 
 app.put(
-  "/updateStatus/:_id",
+  "/updateStatus",
   upload.none(),
   async (
     req: Request<{}, {}, { status: IUser["status"]; id: string }>,

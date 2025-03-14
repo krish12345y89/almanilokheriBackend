@@ -68,5 +68,5 @@ const messageSchema = new mongoose.Schema({
 });
 
 export const Chat = mongoose.model("Chat", chatSchema);
-export const Request = mongoose.model("Request", requestSchema);
+export const requests = mongoose.model("Request", requestSchema);
 export const Message = mongoose.model("Message", messageSchema);

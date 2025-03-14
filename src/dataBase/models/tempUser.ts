@@ -2,7 +2,7 @@ import { model, Schema, Document } from "mongoose";
 export interface ITempUser extends Document {
   email: string;
   uuid: string;
-  permanentUser?:boolean;
+  permanentUser:boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

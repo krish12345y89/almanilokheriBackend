@@ -2,6 +2,8 @@ import { NextFunction } from "express";
 import { ErrorHandle } from "../utils/errorHandling.js";
 import { TempUserRepository } from "../dataBase/repository/tempUser.js";
 import { tempUser } from "../types/user.js";
+import { ITempUser } from "../dataBase/models/tempUser.js";
+import { IUser } from "../dataBase/models/user.js";
 
 export class TempUserService {
   private repository: TempUserRepository;
@@ -23,8 +25,9 @@ export class TempUserService {
     }
   };
 
-  tempUserSignIn = async (data: tempUser, next: NextFunction) => {
+  tempUserSignIn = async (data: tempUser, next: NextFunction):Promise<ITempUser | IUser | void> => {
     try {
+      console.log("data in servie layer",data)
       if (!data.email || !data.uuid) {
         return next(
           new ErrorHandle("Please provide both uuid and email to sign in", 400)

@@ -4,6 +4,7 @@ import { NextFunction, Request } from "express";
 import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import { ErrorHandle } from "./errorHandling.js";
+import { NodeHttpHandler } from "@aws-sdk/node-http-handler";
 
 dotenv.config();
 
@@ -22,6 +23,10 @@ const s3Client = new S3Client({
     accessKeyId: accessKey,
     secretAccessKey: secretKey,
   },
+  requestHandler: new NodeHttpHandler({
+    connectionTimeout: 300000,
+    requestTimeout: 300000,
+  }),
 });
 
 const s3Storage: StorageEngine = multerS3({
@@ -33,7 +38,7 @@ const s3Storage: StorageEngine = multerS3({
   key: (req: Request, file: Express.Multer.File, cb) => {
     const fileName = `${Date.now()}-${file.originalname}`;
     cb(null, fileName);
-  },
+  }
 });
 
 export const upload = multer({

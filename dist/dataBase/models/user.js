@@ -115,6 +115,10 @@ const schema = new Schema({
         trim: true,
         set: (value) => sanitizeHtml(value),
     },
+    branch: {
+        type: String,
+        required: [true, "please provide your branch"]
+    },
     profession: {
         type: String,
         required: [true, "Profession is required"],
@@ -194,6 +198,10 @@ const schema = new Schema({
         default: "Pending",
         required: [true, "Status is required"],
     },
+    permanentUser: {
+        type: Boolean,
+        default: false
+    }
 }, {
     timestamps: true,
 });
@@ -221,7 +229,7 @@ function validateKeysAndValues(obj, path = []) {
         }
     }
 }
-const IMMUTABLE_FIELDS = ["uuid", "email"];
+const IMMUTABLE_FIELDS = [];
 schema.pre("save", async function (next) {
     const doc = this;
     // Validate keys recursively for NoSQL injection and prototype pollution

@@ -3,13 +3,13 @@ import { config } from "dotenv";
 import { Request, NextFunction, Response } from "express";
 import jwt from "jsonwebtoken";
 import { ErrorHandle } from "./errorHandling.js";
-import { ITempUser } from "../dataBase/models/tempUser.js";
+import { ITempUser, TempUser } from "../dataBase/models/tempUser.js";
 import { AdminUser } from "../dataBase/models/adminUser.js";
+import { User } from "../dataBase/models/user.js";
+import mongoose, { Types } from "mongoose";
 config();
 const adminSecret = process.env.ADMIN_SECRET;
 const jwtSecret = process.env.JWT_SECRET;
-let req: Request;
-let next: NextFunction;
 if (!jwtSecret) {
   throw new Error("JWT secret is not defined in environment variables");
 }
@@ -50,64 +50,66 @@ export class UserAuth {
   }
 
   async isAuthorised() {
-    try {
-      const token = req.cookies["token"];
-      if (!token) {
-        return next(new ErrorHandle("please login first", 401));
-      }
-      const verification: ITempUser = JSON.parse(
-        JSON.stringify(jwt.verify(token, jwtSecret))
-      );
-      if (!verification) {
-        return next(new ErrorHandle("please provide a valid token", 401));
-      }
-      (req as any).user = verification._id;
-      let id = (req as any).user;
-      const admin = await AdminUser.findById(id);
-      if (!admin) {
-        return next(new ErrorHandle("admin not found", 401));
-      }
-      next();
-    } catch (error) {
-      console.error("Error in authorisation:", error);
-      next(error);
-    }
-  }
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        let token = "";
+        if (req.cookies?.token) {
+          token = req.cookies.token;
+        } else if (req.headers.cookie) {
+          token = req.headers.cookie.replace("token=", "");
+        }
 
-  async isAdmin() {
-    try {
-      const token = req.cookies["token"];
-      if (!token) {
-        return next(new ErrorHandle("please login first", 401));
+        console.log("Token:", token);
+        if (!token) {
+          console.log("No token found, unauthorized request");
+          return next(new ErrorHandle("Please login first", 401));
+        }
+        let verification: any;
+        try {
+          verification = jwt.verify(token, jwtSecret);
+        } catch (jwtError) {
+          console.error("JWT Verification Error:", jwtError);
+          return next(new ErrorHandle("Invalid token", 401));
+        }
+
+        console.log("Decoded JWT:", verification);
+
+        if (
+          !verification._id ||
+          !mongoose.Types.ObjectId.isValid(verification._id)
+        ) {
+          console.log("Invalid or missing _id in token");
+          return next(new ErrorHandle("Invalid token payload", 401));
+        }
+
+        const userId = new Types.ObjectId(verification._id);
+        const tempUser = TempUser.findById(verification._id);
+        const user = await User.findOne({ _id: verification._id, status: "Approved" });
+        const admin = await AdminUser.findById(verification._id);
+        if (!tempUser && !user && !admin) {
+          return next(new ErrorHandle("User not found", 400));
+        }
+
+        (req as any).user = verification._id;
+        console.log("Middleware Passed, Proceeding to Next Middleware");
+        next();
+      } catch (error) {
+        console.error("Error in authorisation middleware:", error);
+        return next(new ErrorHandle("Authorization error", 500));
       }
-      const verification: ITempUser = JSON.parse(
-        JSON.stringify(jwt.verify(token, jwtSecret))
-      );
-      if (!verification) {
-        return next(new ErrorHandle("please provide a valid token", 401));
-      }
-      (req as any).user = verification._id;
-      let id = (req as any).user;
-      const admin = await AdminUser.findById(id);
-      if (!admin) {
-        return next(new ErrorHandle("admin not found", 401));
-      }
-      next()
-    } catch (error) {
-      console.error("Error in authorisation:", error);
-      next(error);
-    }
+    };
   }
 
   async sendCookie(
-    data: object,
+    data: any,
     res: Response,
     response: any,
     statuscode: number,
     next: NextFunction
   ) {
     try {
-      const payload = jwt.sign(data, jwtSecret);
+      const payload = jwt.sign({ _id: String(data._id) }, jwtSecret);
+      console.log(data);
       const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -117,10 +119,11 @@ export class UserAuth {
         message: "Authorised",
         response,
         success: true,
+        data,
       });
     } catch (error) {
       console.error("Error in sending cookie:", error);
-      next(error);
+      next(new ErrorHandle("Failed to send cookie", 500));
     }
   }
 }

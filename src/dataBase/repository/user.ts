@@ -1,7 +1,12 @@
 import { NextFunction } from "express";
 import { IUser, Proof, Refferal, User } from "../models/user.js";
 import { TempUser } from "../models/tempUser.js";
-import { searchUserType, updatePendingUser, updateUser, userType } from "../../types/user.js";
+import {
+  searchUserType,
+  updatePendingUser,
+  updateUser,
+  userType,
+} from "../../types/user.js";
 import { ErrorHandle, errorHandler2 } from "../../utils/errorHandling.js";
 import mongoose from "mongoose";
 
@@ -13,15 +18,20 @@ export class UserRepository {
       }
       console.log("data in start reporsitory", data);
       if (!data) {
-        return next(new ErrorHandle("fialed to get the user data", 400, true, true));
+        return next(
+          new ErrorHandle("fialed to get the user data", 400, true, true)
+        );
       }
       const tempUser = await TempUser.findOne({ uuid: data.uuid });
 
       if (!tempUser) {
-        return next(new ErrorHandle("There is no user to signUp", 400, true, true));
+        return next(
+          new ErrorHandle("There is no user to signUp", 400, true, true)
+        );
       }
       const user = new User(data);
       console.log("user has been successfully signedUp", user);
+
       await user.save();
       return user;
     } catch (err: any) {
@@ -42,7 +52,9 @@ export class UserRepository {
         search.push({ nemail: { $regex: new RegExp(data.email, "i") } });
       }
       if (data.phoneNumber) {
-        search.push({ phoneNumber: { $regex: new RegExp(data.phoneNumber, "i") } });
+        search.push({
+          phoneNumber: { $regex: new RegExp(data.phoneNumber, "i") },
+        });
       }
       if (data.rollNo) {
         search.push({ rollNo: { $regex: new RegExp(data.rollNo, "i") } });
@@ -70,11 +82,10 @@ export class UserRepository {
       if (!data || !_id) {
         throw new Error("Failed to get the data or uuid");
       }
-      if(data.proof){
-        
+      if (data.proof) {
       }
       const user = await User.findOneAndUpdate(
-        { _id:_id, status: { $in: ["Pending", "Rejected"] } },
+        { _id: _id, status: { $in: ["Pending", "Rejected"] } },
         data,
         { new: true }
       );
@@ -128,16 +139,13 @@ export class UserRepository {
     }
   }
 
-  async updateStatus(
-    _id: string,
-    status: IUser["status"],
-    next: NextFunction
-  ) {
+  async updateStatus(_id: string, status: IUser["status"], next: NextFunction) {
     try {
       const user = await User.findByIdAndUpdate(
-        { _id: _id },
-        { $set: { status: status } }
+        _id,
+        { $set: { status: status, permanentUser: true } }
       );
+      await TempUser.findOneAndUpdate({uuid:user.uuid},{permanentUser:true})
       if (!user) {
         throw new Error("There is no user to update the status");
       }

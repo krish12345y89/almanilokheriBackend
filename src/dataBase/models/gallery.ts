@@ -2,7 +2,7 @@ import { NextFunction } from "express";
 import { Schema, model, Document } from "mongoose";
 import { ErrorHandle } from "../../utils/errorHandling.js";
 
-export type gallery = { file: string; fileName: string }[];
+export type gallery = { file: string; fileName: string; }[];
 
 export interface IGallery extends Document {
   document?: gallery;

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { userService } from "../service/user.js";
 import mongoose from "mongoose";
-import upload from "../utils/multerS3.js";
+import { upload } from "../utils/multerS3.js";
 import { ErrorHandle, errorHandler2 } from "../utils/errorHandling.js";
 import { userSignUpValidation, validateErrors, validateSearchUser, } from "../validation/userValidation.js";
 import { UserAuth } from "../utils/userAuth.js";
@@ -162,7 +162,7 @@ app.put("/updateUser/:_id", upload.fields([
         return next(new ErrorHandle("failed approved user update at api level", 500));
     }
 });
-app.put("/updateStatus/:_id", upload.none(), async (req, res, next) => {
+app.put("/updateStatus", upload.none(), async (req, res, next) => {
     try {
         const { status, id } = req.body;
         if (!id) {

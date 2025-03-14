@@ -2,7 +2,6 @@ import { UserAuth } from "../../utils/userAuth.js";
 import { AdminUser } from "../models/adminUser.js";
 import { ErrorHandle } from "../../utils/errorHandling.js";
 import { User } from "../models/user.js";
-import xlsx from "xlsx";
 export class AdminRepository {
     constructor() {
         this.getAllUsers = async (data, next) => {
@@ -16,8 +15,8 @@ export class AdminRepository {
                 }
                 const query = {
                     ...(data.status && { status: data.status }),
+                    ...(data.branch && { batch: data.branch }),
                     ...(data.batch && { batch: data.batch }),
-                    ...(data.branch && { branch: data.branch }),
                     ...(data.createdAtStart && {
                         createdAt: {
                             $gte: new Date(data.createdAtStart),
@@ -25,21 +24,13 @@ export class AdminRepository {
                         },
                     }),
                 };
+                console.log(new Date(data.createdAtStart));
+                console.log(query);
                 const pipeline = [
                     { $match: query },
                     { $sort: { [data.sortType || "createdAt"]: data.sort ?? -1 } },
                     { $skip: data.page ? (data.page - 1) * (data.limit ?? 20) : 0 },
                     { $limit: data.limit ?? 20 },
-                    {
-                        $project: {
-                            name: 1,
-                            email: 1,
-                            rollNo: 1,
-                            phoneNumber: 1,
-                            branch: 1,
-                            batch: 1,
-                        },
-                    },
                 ];
                 const users = await User.aggregate(pipeline);
                 return users;
@@ -47,16 +38,6 @@ export class AdminRepository {
             catch (error) {
                 console.error("Error fetching users:", error);
                 next(new ErrorHandle("Failed to get all users", 500));
-            }
-        };
-        this.makeUsersFromXlsx = async (next, files) => {
-            try {
-                const file = xlsx.readFile(files);
-                const firstSheet = file.SheetNames[0];
-                const raw = file.Workbook[firstSheet];
-            }
-            catch (error) {
-                next(new ErrorHandle("failed to create users", 500));
             }
         };
         this.auth = new UserAuth();
