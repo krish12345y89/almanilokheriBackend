@@ -14,13 +14,14 @@ export type Refferal = {
 
 export interface IUser extends Document {
   uuid: string;
-  permanentUser?:boolean;
+  permanentUser?: boolean;
   ipAddress?: string;
   name: string;
-  branch:string;
+  branch: string;
   email: string;
   phoneNumber: string;
   proof: Proof | Refferal;
+  selfAdded?: boolean;
   rollNo: string;
   startYear: number;
   endYear: number;
@@ -69,6 +70,10 @@ const schema = new Schema<IUser>(
         validator: (value: string) => validator.isUUID(value),
         message: "Invalid UUID format",
       },
+    },
+    selfAdded: {
+      type: Boolean,
+      default: false,
     },
     name: {
       type: String,
@@ -156,9 +161,9 @@ const schema = new Schema<IUser>(
       trim: true,
       set: (value: string) => sanitizeHtml(value),
     },
-    branch:{
-      type:String,
-      required:[true,"please provide your branch"]
+    branch: {
+      type: String,
+      required: [true, "please provide your branch"],
     },
     profession: {
       type: String,
@@ -241,10 +246,10 @@ const schema = new Schema<IUser>(
       default: "Pending",
       required: [true, "Status is required"],
     },
-    permanentUser:{
-      type:Boolean,
-      default:false
-    }
+    permanentUser: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

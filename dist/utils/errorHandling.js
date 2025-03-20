@@ -9,12 +9,10 @@ export class ErrorHandle extends Error {
 }
 // Main error handler function
 export const errorHandler = async (error, req, res, next) => {
-    // Log the error for debugging
     console.error("Error:", error);
-    // Handle MongoDB Duplicate Key Error (11000)
     if (error.code === 11000) {
-        const field = Object.keys(error.keyPattern)[0]; // Get the field causing the duplicate key error
-        const value = error.keyValue[field]; // Get the conflicting value
+        const field = Object.keys(error.keyPattern)[0];
+        const value = error.keyValue[field];
         res.status(400).json({
             success: false,
             message: `Duplicate value detected: The ${field} "${value}" is already in use.`,

@@ -5,11 +5,17 @@ import { ErrorHandle } from "../utils/errorHandling.js";
 export const newGroupChat = async (req, res, next) => {
     try {
         const file = req.file;
-        const { chatName, members } = req.body;
+        let { chatName, members } = req.body;
         if (!chatName || !members || !file)
             return next(new ErrorHandle("please enter all fields", 400));
         if (members.length < 3)
             return next(new ErrorHandle("members can not be less than 3 in a group chat", 400));
+        members.push(req.user);
+        await members.map(async (member) => {
+            if (!(await User.findOne({ _id: member, status: "Approved" }))) {
+                return next(new ErrorHandle(`${member} is not approved`, 400));
+            }
+        });
         const chat = new Chat({
             chatName,
             members,
@@ -32,10 +38,10 @@ export const newGroupChat = async (req, res, next) => {
 export const requestSend = async (req, res, next) => {
     const { receiver } = req.body;
     const { sender } = req.user;
-    if (!receiver)
+    if (!sender)
         return next(new ErrorHandle("please login first ", 401));
     if (!sender || receiver)
-        return next(new ErrorHandle("please enter both sender and receiver", 400));
+        return next(new ErrorHandle("please enter receiver", 400));
     const request = await requests.create({
         sender,
         receiver,

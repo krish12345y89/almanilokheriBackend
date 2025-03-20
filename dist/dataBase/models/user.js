@@ -31,6 +31,10 @@ const schema = new Schema({
             message: "Invalid UUID format",
         },
     },
+    selfAdded: {
+        type: Boolean,
+        default: false,
+    },
     name: {
         type: String,
         required: [true, "Name is required"],
@@ -117,7 +121,7 @@ const schema = new Schema({
     },
     branch: {
         type: String,
-        required: [true, "please provide your branch"]
+        required: [true, "please provide your branch"],
     },
     profession: {
         type: String,
@@ -200,8 +204,8 @@ const schema = new Schema({
     },
     permanentUser: {
         type: Boolean,
-        default: false
-    }
+        default: false,
+    },
 }, {
     timestamps: true,
 });

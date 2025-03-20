@@ -11,7 +11,7 @@ export class ErrorHandle extends Error {
     isMendatory: boolean = true
   ) {
     super(message);
-    this.message=message;
+    this.message = message;
     this.statusCode = statusCode;
     this.isFunctional = isFunctional;
     this.isMendatory = isMendatory;
@@ -25,14 +25,12 @@ export const errorHandler = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  // Log the error for debugging
   console.error("Error:", error);
 
-  // Handle MongoDB Duplicate Key Error (11000)
   if (error.code === 11000) {
-    const field = Object.keys(error.keyPattern)[0]; // Get the field causing the duplicate key error
-    const value = error.keyValue[field]; // Get the conflicting value
-      res.status(400).json({
+    const field = Object.keys(error.keyPattern)[0]; 
+    const value = error.keyValue[field]; 
+    res.status(400).json({
       success: false,
       message: `Duplicate value detected: The ${field} "${value}" is already in use.`,
       isMendatory: true,
@@ -55,7 +53,7 @@ export const errorHandler = async (
     const errors = Object.values(error.errors)
       .map((err: any) => `${err.path}: ${err.message}`)
       .join(", ");
-     res.status(400).json({
+    res.status(400).json({
       success: false,
       message: `Validation error: ${errors}`,
       isMendatory: true,
@@ -75,7 +73,7 @@ export const errorHandler = async (
 
   // Handle Missing Schema Error
   if (error.name === "MissingSchemaError") {
-     res.status(500).json({
+    res.status(500).json({
       success: false,
       message: `Schema for "${error.name}" is missing. Ensure the model is properly defined.`,
       isMendatory: true,
@@ -109,7 +107,7 @@ export const errorHandler2 = async (err: any, next: NextFunction) => {
   try {
     // Mongoose Duplicate Key Error (11000)
     if (err.name === "MongoServerError" || err.name === "MongooseError") {
-      if (err.code === 11000 || err.cause?.code===11000) {
+      if (err.code === 11000 || err.cause?.code === 11000) {
         const fields = Object.keys(err.cause.keyPattern || {});
         const keyValues = fields
           .map((field) => `${field}: "${err.cause.keyValue?.[field]}"`)
@@ -127,11 +125,9 @@ export const errorHandler2 = async (err: any, next: NextFunction) => {
       }
 
       // MongoDB Document validation error (121)
-      if (err.code === 121 || err.cause?.code===121) {
+      if (err.code === 121 || err.cause?.code === 121) {
         console.error("MongoDB Validation Error:", err);
-        next(
-          new ErrorHandle(`Document validation failed`, 400, false, true)
-        );
+        next(new ErrorHandle(`Document validation failed`, 400, false, true));
         return;
       }
 
@@ -153,14 +149,7 @@ export const errorHandler2 = async (err: any, next: NextFunction) => {
         .map((error: any) => `${error.path}: ${error.message}`)
         .join(", ");
       console.error("Validation Error:", err);
-      next(
-        new ErrorHandle(
-          `Validation error: ${errors}`,
-          400,
-          false,
-          true
-        )
-      );
+      next(new ErrorHandle(`Validation error: ${errors}`, 400, false, true));
       return;
     }
 
